@@ -1,0 +1,104 @@
+---
+title: "HW2"
+author: "Bibaeva Maria"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(mosaic)
+df <- read_csv('https://raw.githubusercontent.com/agricolamz/2018_data_analysis_for_linguists/master/data/students/mbibaeva/hw2_binomial/hw2_binomial.csv')
+```
+
+n — количество попыток, k — количество успехов, prior — наши предворительные идеи относительно доли успехов.
+
+### 1.1
+Биномиальный тест
+```{r}
+binomial_test <- binom.test(df$k, df$n, df$prior)
+binomial_test
+```
+### 1.2
+Симуляция
+```{r}
+set.seed(42)
+do(1000)*
+  sum(sample(x = 1:0,
+             size = df$n,
+             prob = c(df$prior, 1-df$prior),
+             replace = TRUE)) ->
+  simulations
+simulations %>%
+  mutate(greater = sum >= df$k) %>%
+  count(greater)
+```
+
+График
+```{r}
+simulations %>% 
+  ggplot(aes(sum))+
+  geom_density(fill = "lightblue")+
+  geom_vline(xintercept = df$k, linetype = 2)+
+  theme_bw()+
+  labs(title = "Распределение 1000 симуляций с параметрами n = 109, k = 30, p = 0.317")
+```
+
+### 1.3
+Среднее апостериорное распределение, prior - средни априорного распределения, n - количество элементов.
+```{r}
+alpha_prior <- df$prior*df$n
+alpha_prior
+beta_prior <- (1-df$prior)*df$n
+beta_prior
+alpha_data <- df$k
+beta_data <- df$n - df$k
+alpha_post <- alpha_prior + alpha_data
+alpha_post
+beta_post <- beta_prior + beta_data
+beta_post
+mean_1 <- alpha_post/(alpha_post+beta_post)
+mean_1
+```
+График
+```{r}
+x <- seq(0, 1, length = 100)
+data_frame(p = rep(x, 3),
+           density = c(dbeta(x, alpha_prior, beta_prior),
+                       dbeta(x, alpha_data, beta_data),
+                       dbeta(x, alpha_post, beta_post)),
+           type = rep(c("prior", "likelihood", "posterior"), each = 100))%>% 
+  ggplot(aes(x = p, y = density, color = type))+
+  geom_line()+
+  theme_bw()
+```
+### 1.4
+Среднее апостериорное распределение с неинформативным априорным распределением.
+```{r}
+alpha_prior = 1
+beta_priop = 1
+alpha_post <- alpha_prior + alpha_data
+beta_post <- beta_post + beta_data
+mean_2 <- alpha_post/(alpha_post + beta_post)
+mean_2
+```
+
+```{r}
+x <- seq(0, 1, length = 100)
+data_frame(p = rep(x, 3),
+           density = c(dbeta(x, 1, 1),
+                       dbeta(x, alpha_data, beta_data),
+                       dbeta(x, alpha_data + 1, beta_data + 1)),
+           type = rep(c("prior", "likelihood", "posterior"), each = 100))%>% 
+  ggplot(aes(x = p, y = density, color = type))+
+  geom_line()+
+  theme_bw()
+```
+
+### 1.5
+
+Биномиальный тест показал, что p-value = 0.4103, т.е. p-value < 0.5, а это значит, что нулевая гипотеза имеет больше шансов на успех.
+При симуляции аша вероятность оказалась достаточно близко к вероятности максимальной (максимум ~0,34). Средние результаты апостериорных распределений оказались 0.2962603 и 0.1176849.
