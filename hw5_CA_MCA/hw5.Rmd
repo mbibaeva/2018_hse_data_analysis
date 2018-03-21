@@ -1,0 +1,77 @@
+---
+title: "hw5"
+author: "Bibaeva Masha"
+date: "March 21, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Скачайте датасет chairs, в котором собраны разные описания экземпляров из немецких он-лайн каталогов, отнесенным к категориям Stuhl ‘стул’ or Sessel ‘кресло’.
+
+```{r}
+library(MASS)
+library(tidyverse)
+library(ggplot2)
+library(ca)
+
+stuhl <- read.csv("https://raw.githubusercontent.com/agricolamz/2018_data_analysis_for_linguists/master/data/students/mbibaeva/hw5_CA_MCA/hw5_chairs.csv")
+colors <- read.csv("https://raw.githubusercontent.com/agricolamz/2018_data_analysis_for_linguists/master/data/students/mbibaeva/hw5_CA_MCA/hw5_colreg.csv")
+```
+
+## 1.1
+
+Используйте все переменные кроме переменных Shop, WordDE и Category, чтобы построить MCA. Нарисуйте все наблюдения, раскрасьте их по переменной Category и добавьте доверительные эллипсы. Сверху нанесите переменные из получившейся модели MCA. Получившийся график ggplot запустите в консоль.
+
+```{r}
+MCA <- MASS::mca(stuhl[, -c(1:3)])
+stuhl <- cbind(stuhl, MCA$rs)
+sessel <- as.data.frame(MCA$cs)
+sessel$var_names <- rownames(MCA$cs)
+
+stuhl %>% 
+  ggplot(aes(`1`, `2`))+
+  geom_point(aes(color = Category))+
+  stat_ellipse(aes(color = Category))+
+  geom_text(data = variables, aes(`1`, `2`, label = var_names), size=4) ->
+  mca_plot
+mca_plot
+```
+## 1.2
+
+У Stuhl и Sessel есть общие характеристики, например, высота, однако они достаточно различимы благодаря другим параметрам, например, по наличию подлокотников или по возможности быть использованным в качестве кровати.
+
+## 2.1
+
+Cкачайте данные, содержащие 11 базовых цветов в разных подкорпусах Corpus of Contemporary American English (Davies 2008 - ). Учитывались только адъективные употребления. Постройте CA и нарисуйте биплот с переменными из столбцов и строчек (без стрелочек). Получившийся график ggplot запустите в консоль.
+
+```{r}
+rownames(colors) = colors$colors
+col_ca <- ca(colors[-5])
+
+col_ca
+
+col_col <- data.frame(col_ca$colcoord)
+col_col$rows <- rownames(col_ca$colcoord)
+col_col
+
+col_row <- data.frame(col_ca$rowcoord)
+col_row$rows <- rownames(col_ca$rowcoord)
+col_row
+
+col_col %>% 
+  ggplot(aes(Dim1, Dim2, label = rows))+
+  geom_text(aes(label=rows), color = "blue")+
+  geom_text(data = col_row, color="red")+
+  labs(x = "Dim1 (42.1%)",
+       y = "Dim2 (32.6%)") ->
+  col_plot
+col_plot
+```
+## 2.2
+
+Проинтерпретируйте полученные результаты.
+
+Из полученных данных и графика видно, что цветовые прилагательные совершнено не характерны для академических текстов, прилагательные red, green и orange находятся ближе к публицистическим текстам (красные движения? зелёные партии? оранжевые революции?), но более сложные и, так скажем, небинарные противопоставления, как у корпуса разговорного (разговоры о цвете кожи?), всё же свойственны текстам художественным. 
